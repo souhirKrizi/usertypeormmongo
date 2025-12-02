@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
@@ -31,11 +31,28 @@ export class UsersService {
   }
 
   async findOneById(id: string): Promise<User> {
-    const user = await this.usersRepository.findOne({ where: { _id: id } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+    // Vérification de la validité de l'ID
+    if (!ObjectId.isValid(id)) {
+      throw new BadRequestException('Format d\'ID utilisateur invalide');
     }
-    return user;
+
+    try {
+      const objectId = new ObjectId(id);
+      const user = await this.usersRepository.findOne({ 
+        where: { _id: objectId } 
+      });
+
+      if (!user) {
+        throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Erreur lors de la recherche de l'utilisateur: ${error.message}`);
+    }
   }
 
   async findOneByEmail(email: string): Promise<User | undefined> {

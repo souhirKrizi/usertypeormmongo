@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, NotFoundException, BadRequestException } from '@nestjs/common';
+import { 
+  BadRequestException, 
+  Body, 
+  Controller, 
+  Delete, 
+  Get, 
+  InternalServerErrorException, 
+  NotFoundException, 
+  Param, 
+  Post, 
+  Put 
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -22,7 +33,13 @@ export class UsersController {
     try {
       return await this.usersService.findOneById(id);
     } catch (error) {
-      throw new NotFoundException(error.message);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error.name === 'BSONError' || error.message.includes('invalid ObjectId')) {
+        throw new BadRequestException('Format d\'ID utilisateur invalide');
+      }
+      throw new InternalServerErrorException('Une erreur est survenue lors de la récupération de l\'utilisateur');
     }
   }
 
